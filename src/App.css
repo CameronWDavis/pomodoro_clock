@@ -1,0 +1,150 @@
+/* ── Layout ── */
+.app {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 40px 20px;
+  transition: background 0.4s, color 0.4s;
+}
+
+/* ── Per-mode colours ── */
+.app--work   { --accent: #e05c5c; --accent-dim: rgba(224,92,92,0.18); }
+.app--short  { --accent: #4caf7d; --accent-dim: rgba(76,175,125,0.18); }
+.app--long   { --accent: #5b8dee; --accent-dim: rgba(91,141,238,0.18); }
+
+/* ── Title ── */
+.app__title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Mode tabs ── */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--accent-dim);
+  border-radius: 50px;
+  padding: 4px;
+}
+
+.mode-tab {
+  border: none;
+  background: transparent;
+  border-radius: 50px;
+  padding: 6px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+
+.mode-tab--active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Ring timer ── */
+.timer-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-ring svg {
+  display: block;
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--accent-dim);
+  stroke-width: 10;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s linear;
+}
+
+.timer-display {
+  position: absolute;
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 36px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  min-width: 120px;
+}
+
+.btn--primary:hover {
+  opacity: 0.88;
+}
+
+.btn--ghost {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.btn--ghost:hover {
+  opacity: 0.75;
+}
+
+/* ── Pomodoro count ── */
+.pomodoro-count {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin: 0;
+}
+
+/* ── Progress dots (4 per set) ── */
+.dots {
+  display: flex;
+  gap: 10px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  transition: background 0.3s;
+}
+
+.dot--filled {
+  background: var(--accent);
+}
