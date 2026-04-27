@@ -1,128 +1,58 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-
-type Mode = "work" | "short" | "long";
-
-const DURATIONS: Record<Mode, number> = {
-  work: 25 * 60,
-  short: 5 * 60,
-  long: 15 * 60,
-};
-
-const LABELS: Record<Mode, string> = {
-  work: "Focus",
-  short: "Short Break",
-  long: "Long Break",
-};
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
+import { LABELS } from "./constants";
+import { useTimer } from "./hooks/useTimer";
+import { useTasks } from "./hooks/useTasks";
+import { ModeTabs } from "./components/ModeTabs";
+import { TimerRing } from "./components/TimerRing";
+import { Controls } from "./components/Controls";
+import { TaskList } from "./components/TaskList";
+import { formatTime } from "./utils/time";
+import { playBeep } from "./utils/sound";
+import type { Mode } from "./types";
 
 export default function App() {
-  const [mode, setMode] = useState<Mode>("work");
-  const [secondsLeft, setSecondsLeft] = useState(DURATIONS.work);
-  const [running, setRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const tasksApi = useTasks();
 
-  const playBeep = useCallback(() => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
+  const handleComplete = (mode: Mode) => {
+    playBeep();
+    if (mode === "work") {
+      setCompletedPomodoros((c) => c + 1);
+      tasksApi.incrementActivePomodoro();
     }
-    const ctx = audioCtxRef.current;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.8);
-  }, []);
+  };
 
-  const switchMode = useCallback((next: Mode) => {
-    setMode(next);
-    setSecondsLeft(DURATIONS[next]);
-    setRunning(false);
-  }, []);
+  const timer = useTimer({ onComplete: handleComplete });
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!);
-            setRunning(false);
-            playBeep();
-            setCompletedPomodoros((c) => (mode === "work" ? c + 1 : c));
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [running, mode, playBeep]);
-
-  useEffect(() => {
-    document.title = running
-      ? `${formatTime(secondsLeft)} — ${LABELS[mode]}`
+    document.title = timer.running
+      ? `${formatTime(timer.secondsLeft)} — ${LABELS[timer.mode]}`
       : "Pomodoro";
-  }, [secondsLeft, running, mode]);
+  }, [timer.secondsLeft, timer.running, timer.mode]);
 
-  const progress = 1 - secondsLeft / DURATIONS[mode];
-  const circumference = 2 * Math.PI * 110;
-  const dashOffset = circumference * (1 - progress);
+  const activeTask = tasksApi.tasks.find((t) => t.id === tasksApi.activeId);
 
   return (
-    <div className={`app app--${mode}`}>
+    <div className={`app app--${timer.mode}`}>
       <h1 className="app__title">Pomodoro</h1>
 
-      <div className="mode-tabs">
-        {(["work", "short", "long"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            className={`mode-tab${mode === m ? " mode-tab--active" : ""}`}
-            onClick={() => switchMode(m)}
-          >
-            {LABELS[m]}
-          </button>
-        ))}
-      </div>
+      <ModeTabs mode={timer.mode} onChange={timer.switchMode} />
 
-      <div className="timer-ring">
-        <svg viewBox="0 0 240 240" width="240" height="240">
-          <circle cx="120" cy="120" r="110" className="ring-bg" />
-          <circle
-            cx="120"
-            cy="120"
-            r="110"
-            className="ring-progress"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            transform="rotate(-90 120 120)"
-          />
-        </svg>
-        <span className="timer-display">{formatTime(secondsLeft)}</span>
-      </div>
+      <TimerRing secondsLeft={timer.secondsLeft} progress={timer.progress} />
 
-      <div className="controls">
-        <button className="btn btn--primary" onClick={() => setRunning((r) => !r)}>
-          {running ? "Pause" : secondsLeft === DURATIONS[mode] ? "Start" : "Resume"}
-        </button>
-        <button className="btn btn--ghost" onClick={() => switchMode(mode)}>
-          Reset
-        </button>
-      </div>
+      {activeTask && (
+        <p className="active-task">
+          Focusing on: <strong>{activeTask.title}</strong>
+        </p>
+      )}
+
+      <Controls
+        running={timer.running}
+        atStart={timer.atStart}
+        onToggle={timer.toggle}
+        onReset={timer.reset}
+      />
 
       <p className="pomodoro-count">
         {completedPomodoros > 0
@@ -130,11 +60,15 @@ export default function App() {
           : "No pomodoros completed yet"}
       </p>
 
-      <div className="dots">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span key={i} className={`dot${i < completedPomodoros % 4 || (completedPomodoros > 0 && completedPomodoros % 4 === 0) ? " dot--filled" : ""}`} />
-        ))}
-      </div>
+      <TaskList
+        tasks={tasksApi.tasks}
+        activeId={tasksApi.activeId}
+        onAdd={tasksApi.addTask}
+        onToggle={tasksApi.toggleTask}
+        onDelete={tasksApi.deleteTask}
+        onSetActive={tasksApi.setActive}
+        onReorder={tasksApi.reorderTasks}
+      />
     </div>
   );
 }
