@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code / agent tooling
+.claude/
+CLAUDE.md
+.aider*
+.cursor/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+Thumbs.db
+
+# Build / cache
+.vite/
+coverage/
+*.tsbuildinfo
